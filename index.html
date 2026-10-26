@@ -1,0 +1,636 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deluxe Hotel | Booking Management</title>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  color: #243047;
+}
+header {
+  background: #102c26;
+  color: white;
+  padding: 24px 6%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+header h1 { margin: 0; font-size: 25px; }
+header p { margin: 6px 0 0; color: #d0dfd8; }
+nav { display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  border: 0;
+  border-radius: 7px;
+  padding: 11px 15px;
+  cursor: pointer;
+  font-weight: bold;
+  background: #176b50;
+  color: white;
+}
+button:hover { opacity: .88; }
+nav button { background: #fff; color: #102c26; }
+.container { max-width: 1150px; margin: 28px auto; padding: 0 18px; }
+.panel {
+  background: white;
+  padding: 22px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 3px 15px #142c2610;
+}
+h2 { margin-top: 0; }
+form, .filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.field { flex: 1 1 160px; }
+label { display: block; margin-bottom: 7px; font-size: 14px; font-weight: bold; }
+input, select, textarea {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #cbd5d1;
+  border-radius: 7px;
+  background: white;
+  font: inherit;
+}
+textarea { min-height: 75px; resize: vertical; }
+.results, .stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.room {
+  border: 1px solid #e1e8e4;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.room-top { background: #e4efe8; padding: 18px; }
+.room-top h3 { margin: 0 0 8px; }
+.room-info { padding: 16px; }
+.price { color: #176b50; font-size: 22px; font-weight: bold; }
+.muted { color: #64748b; font-size: 14px; }
+.notice { padding: 12px; border-radius: 7px; margin: 12px 0; }
+.success { background: #e1f7e9; color: #155b32; }
+.error { background: #ffe8e8; color: #8b1e1e; }
+.hidden { display: none !important; }
+.stats .panel { margin: 0; }
+.stat-number { font-size: 26px; font-weight: bold; color: #176b50; }
+table { width: 100%; border-collapse: collapse; min-width: 700px; }
+th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+th { background: #edf3ef; }
+.table-wrap { overflow-x: auto; }
+.small-btn { padding: 7px 9px; margin: 2px; }
+.danger { background: #a72c2c; }
+footer { text-align: center; padding: 25px; color: #64748b; }
+@media(max-width:600px) {
+  header { padding: 20px; }
+  .container { padding: 0 12px; }
+  .panel { padding: 16px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div>
+    <h1>Deluxe Hotel</h1>
+    <p>Comfort, convenience and easy reservations</p>
+  </div>
+  <nav>
+    <button onclick="showSection('guest')">Find a Room</button>
+    <button onclick="showSection('bookings')">My Reservations</button>
+    <button onclick="showSection('admin')">Admin Dashboard</button>
+  </nav>
+</header>
+
+<main class="container">
+
+  <section id="guest">
+    <div class="panel">
+      <h2>Find Your Perfect Room</h2>
+      <p class="muted">Choose your dates and number of guests to find available rooms.</p>
+      <form id="searchForm">
+        <div class="field">
+          <label for="checkin">Check-in</label>
+          <input type="date" id="checkin" required>
+        </div>
+        <div class="field">
+          <label for="checkout">Check-out</label>
+          <input type="date" id="checkout" required>
+        </div>
+        <div class="field">
+          <label for="guests">Guests</label>
+          <input type="number" id="guests" min="1" value="1" required>
+        </div>
+        <button type="submit">Search Rooms</button>
+      </form>
+      <div id="searchMessage" aria-live="polite"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Available Rooms</h2>
+      <div id="roomResults" class="results"></div>
+    </div>
+
+    <div id="bookingPanel" class="panel hidden">
+      <h2>Complete Your Reservation</h2>
+      <div id="selectedRoom"></div>
+      <form id="bookingForm">
+        <div class="field">
+          <label for="customerName">Full Name</label>
+          <input id="customerName" required maxlength="100">
+        </div>
+        <div class="field">
+          <label for="customerEmail">Email Address</label>
+          <input id="customerEmail" type="email" required>
+        </div>
+        <div class="field">
+          <label for="bookingGuests">Number of Guests</label>
+          <input id="bookingGuests" type="number" min="1" required>
+        </div>
+        <button type="submit">Confirm Booking</button>
+      </form>
+      <div id="bookingMessage" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="bookings" class="hidden">
+    <div class="panel">
+      <h2>Reservation Management</h2>
+      <p class="muted">Look up a reservation using its booking reference or the customer's email address.</p>
+      <form id="lookupForm">
+        <div class="field">
+          <label for="lookup">Booking Reference or Email</label>
+          <input id="lookup" required>
+        </div>
+        <button type="submit">Find Reservation</button>
+      </form>
+      <div id="lookupResults"></div>
+    </div>
+  </section>
+
+  <section id="admin" class="hidden">
+    <div class="panel">
+      <h2>Admin Dashboard</h2>
+      <div class="notice error">
+      </div>
+      <div class="stats">
+        <div class="panel">
+          <div class="muted">Total Rooms</div>
+          <div id="totalRooms" class="stat-number">0</div>
+        </div>
+        <div class="panel">
+          <div class="muted">Active Reservations</div>
+          <div id="activeBookings" class="stat-number">0</div>
+        </div>
+        <div class="panel">
+          <div class="muted">Cancelled Reservations</div>
+          <div id="cancelledBookings" class="stat-number">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Add a Room</h2>
+      <form id="roomForm">
+        <div class="field">
+          <label for="roomName">Room Name / Number</label>
+          <input id="roomName" placeholder="e.g. Room 101" required>
+        </div>
+        <div class="field">
+          <label for="roomType">Room Type</label>
+          <select id="roomType">
+            <option>Single</option>
+            <option>Double</option>
+            <option>Deluxe</option>
+            <option>Suite</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="roomPrice">Price per Night (₦)</label>
+          <input id="roomPrice" type="number" min="1" required>
+        </div>
+        <div class="field">
+          <label for="roomCapacity">Guest Capacity</label>
+          <input id="roomCapacity" type="number" min="1" value="2" required>
+        </div>
+        <div class="field">
+          <label for="roomStatus">Room Status</label>
+          <select id="roomStatus">
+            <option value="available">Available</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="roomDescription">Description</label>
+          <input id="roomDescription" placeholder="e.g. Air conditioning">
+        </div>
+        <button type="submit">Add Room</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Manage Rooms</h2>
+      <div id="adminRooms" class="table-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <h2>All Reservations</h2>
+      <div class="field">
+        <label for="adminSearch">Search by reference or customer name</label>
+        <input id="adminSearch" placeholder="Enter search term">
+      </div>
+      <div id="adminBookings" class="table-wrap"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Deluxe Hotel Booking Management System
+
+<script>
+const money = n => new Intl.NumberFormat("en-NG", {
+  style: "currency", currency: "NGN", maximumFractionDigits: 0
+}).format(n);
+
+const today = new Date();
+const todayText = [
+  today.getFullYear(),
+  String(today.getMonth() + 1).padStart(2, "0"),
+  String(today.getDate()).padStart(2, "0")
+].join("-");
+
+document.getElementById("checkin").min = todayText;
+document.getElementById("checkout").min = todayText;
+
+function load(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+let rooms = load("hotelRooms", [
+  {id: 1, name: "Room 101", type: "Single", price: 25000,
+   capacity: 1, status: "available", description: "Comfortable single room"},
+  {id: 2, name: "Room 201", type: "Double", price: 35000,
+   capacity: 2, status: "available", description: "Spacious double room"},
+  {id: 3, name: "Room 301", type: "Deluxe", price: 40000,
+   capacity: 3, status: "available", description: "Premium deluxe room"},
+  {id: 4, name: "Room 401", type: "Suite", price: 75000,
+   capacity: 4, status: "available", description: "Luxury suite"}
+]);
+
+let bookings = load("hotelBookings", []);
+let selectedRoomId = null;
+let searchDates = null;
+
+function save() {
+  localStorage.setItem("hotelRooms", JSON.stringify(rooms));
+  localStorage.setItem("hotelBookings", JSON.stringify(bookings));
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+function showSection(id) {
+  ["guest", "bookings", "admin"].forEach(section => {
+    document.getElementById(section).classList.toggle("hidden", section !== id);
+  });
+  if (id === "admin") renderAdmin();
+  if (id === "bookings") document.getElementById("lookupResults").innerHTML = "";
+}
+
+function validDates(checkin, checkout) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(checkin) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(checkout) &&
+    checkin >= todayText && checkout > checkin;
+}
+
+function nightsBetween(start, end) {
+  return (Date.parse(end + "T00:00:00Z") -
+          Date.parse(start + "T00:00:00Z")) / 86400000;
+}
+
+function overlaps(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
+function isRoomFree(room, start, end) {
+  return room.status === "available" &&
+    !bookings.some(b => b.roomId === room.id &&
+      b.status === "Active" &&
+      overlaps(start, end, b.checkin, b.checkout));
+}
+
+function renderRooms() {
+  const container = document.getElementById("roomResults");
+
+  if (!searchDates) {
+    container.innerHTML = '<p class="muted">Select your dates to search for available rooms.</p>';
+    return;
+  }
+
+  const guests = Number(document.getElementById("guests").value);
+  const available = rooms.filter(r =>
+    r.capacity >= guests &&
+    isRoomFree(r, searchDates.checkin, searchDates.checkout)
+  );
+
+  if (!available.length) {
+    container.innerHTML = "<p>No rooms match your dates and guest capacity. Try different dates or fewer guests.</p>";
+    return;
+  }
+
+  container.innerHTML = available.map(r => `
+    <article class="room">
+      <div class="room-top">
+        <h3>${escapeHTML(r.type)} Room</h3>
+        <span>${escapeHTML(r.name)}</span>
+      </div>
+      <div class="room-info">
+        <p>${escapeHTML(r.description || "Comfortable hotel room")}</p>
+        <p>Capacity: ${r.capacity} guest(s)</p>
+        <p class="price">${money(r.price)} <span class="muted">/ night</span></p>
+        <p>Total for ${nightsBetween(searchDates.checkin, searchDates.checkout)} night(s):
+          <strong>${money(r.price * nightsBetween(searchDates.checkin, searchDates.checkout))}</strong>
+        </p>
+        <button onclick="selectRoom(${r.id})">Book This Room</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+document.getElementById("searchForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const checkin = document.getElementById("checkin").value;
+  const checkout = document.getElementById("checkout").value;
+  const guests = Number(document.getElementById("guests").value);
+
+  if (!validDates(checkin, checkout) || !Number.isInteger(guests) || guests < 1) {
+    document.getElementById("searchMessage").innerHTML =
+      '<div class="notice error">Please enter valid future dates and at least one guest.</div>';
+    return;
+  }
+
+  searchDates = {checkin, checkout};
+  selectedRoomId = null;
+  document.getElementById("bookingPanel").classList.add("hidden");
+  document.getElementById("searchMessage").innerHTML = "";
+  renderRooms();
+});
+
+function selectRoom(id) {
+  selectedRoomId = id;
+  const room = rooms.find(r => r.id === id);
+  if (!room || !searchDates || !isRoomFree(room, searchDates.checkin, searchDates.checkout)) {
+    alert("This room is no longer available. Please search again.");
+    renderRooms();
+    return;
+  }
+
+  document.getElementById("selectedRoom").innerHTML =
+    `<p><strong>${escapeHTML(room.name)} — ${escapeHTML(room.type)}</strong></p>
+     <p>${searchDates.checkin} to ${searchDates.checkout}</p>
+     <p>Total: <strong>${money(room.price * nightsBetween(searchDates.checkin, searchDates.checkout))}</strong></p>`;
+
+  document.getElementById("bookingGuests").max = room.capacity;
+  document.getElementById("bookingGuests").value =
+    document.getElementById("guests").value;
+  document.getElementById("bookingPanel").classList.remove("hidden");
+  document.getElementById("bookingMessage").innerHTML = "";
+  document.getElementById("bookingPanel").scrollIntoView({behavior: "smooth"});
+}
+
+document.getElementById("bookingForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const room = rooms.find(r => r.id === selectedRoomId);
+  const name = document.getElementById("customerName").value.trim();
+  const email = document.getElementById("customerEmail").value.trim();
+  const guests = Number(document.getElementById("bookingGuests").value);
+
+  if (!room || !searchDates ||
+      !validDates(searchDates.checkin, searchDates.checkout) ||
+      !isRoomFree(room, searchDates.checkin, searchDates.checkout) ||
+      !name || !email || !Number.isInteger(guests) ||
+      guests < 1 || guests > room.capacity) {
+    document.getElementById("bookingMessage").innerHTML =
+      '<div class="notice error">Booking failed. Please check your details and room availability.</div>';
+    renderRooms();
+    return;
+  }
+
+  const nights = nightsBetween(searchDates.checkin, searchDates.checkout);
+  const reference = "HTL-" + Date.now().toString(36).toUpperCase() +
+    "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  const booking = {
+    reference, roomId: room.id, roomName: room.name,
+    customer: name, email, guests,
+    checkin: searchDates.checkin, checkout: searchDates.checkout,
+    nights, total: nights * room.price, status: "Active",
+    createdAt: new Date().toISOString()
+  };
+
+  bookings.push(booking);
+  save();
+
+  document.getElementById("bookingMessage").innerHTML =
+    `<div class="notice success">
+      <h3>Reservation Created!</h3>
+      <p>Your booking reference is <strong>${escapeHTML(reference)}</strong></p>
+      <p>Room: ${escapeHTML(room.name)}</p>
+      <p>Total: <strong>${money(booking.total)}</strong></p>
+      <p>Keep your booking reference to look up your reservation.</p>
+    </div>`;
+
+  document.getElementById("bookingForm").reset();
+  renderRooms();
+  renderAdmin();
+});
+
+function cancelBooking(reference) {
+  const booking = bookings.find(b => b.reference === reference);
+  if (!booking || booking.status !== "Active") return;
+
+  if (!confirm("Are you sure you want to cancel this reservation?")) return;
+  booking.status = "Cancelled";
+  save();
+  renderAdmin();
+  document.getElementById("lookupForm").requestSubmit();
+}
+
+document.getElementById("lookupForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const term = document.getElementById("lookup").value.trim().toLowerCase();
+  const matches = bookings.filter(b =>
+    b.reference.toLowerCase() === term || b.email.toLowerCase() === term
+  );
+
+  document.getElementById("lookupResults").innerHTML = matches.length
+    ? matches.map(b => `
+      <div class="panel">
+        <h3>${escapeHTML(b.roomName)}</h3>
+        <p>Reference: <strong>${escapeHTML(b.reference)}</strong></p>
+        <p>Guest: ${escapeHTML(b.customer)}</p>
+        <p>Dates: ${b.checkin} to ${b.checkout}</p>
+        <p>Total: ${money(b.total)}</p>
+        <p>Status: <strong>${b.status}</strong></p>
+        ${b.status === "Active"
+          ? `<button class="danger" onclick="cancelBooking('${escapeHTML(b.reference)}')">Cancel Reservation</button>`
+          : ""}
+      </div>`).join("")
+    : '<div class="notice error">No reservation found. Check your reference or email.</div>';
+});
+
+document.getElementById("roomForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = document.getElementById("roomName").value.trim();
+
+  if (rooms.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+    alert("That room name or number already exists.");
+    return;
+  }
+
+  rooms.push({
+    id: Date.now(),
+    name,
+    type: document.getElementById("roomType").value,
+    price: Number(document.getElementById("roomPrice").value),
+    capacity: Number(document.getElementById("roomCapacity").value),
+    status: document.getElementById("roomStatus").value,
+    description: document.getElementById("roomDescription").value.trim()
+  });
+
+  save();
+  e.target.reset();
+  renderAdmin();
+  renderRooms();
+});
+
+function editPrice(id) {
+  const room = rooms.find(r => r.id === id);
+  if (!room) return;
+  const value = prompt("Enter new price per night (NGN):", room.price);
+  if (value === null) return;
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) {
+    alert("Enter a valid positive price.");
+    return;
+  }
+  room.price = price;
+  save();
+  renderAdmin();
+  renderRooms();
+}
+
+function toggleRoom(id) {
+  const room = rooms.find(r => r.id === id);
+  if (!room) return;
+  room.status = room.status === "available" ? "maintenance" : "available";
+  save();
+  renderAdmin();
+  renderRooms();
+}
+
+function deleteRoom(id) {
+  const room = rooms.find(r => r.id === id);
+  if (!room) return;
+  if (bookings.some(b => b.roomId === id && b.status === "Active")) {
+    alert("Cancel active reservations before removing this room.");
+    return;
+  }
+  if (!confirm("Remove this room?")) return;
+  rooms = rooms.filter(r => r.id !== id);
+  save();
+  renderAdmin();
+  renderRooms();
+}
+
+function renderAdmin() {
+  document.getElementById("totalRooms").textContent = rooms.length;
+  document.getElementById("activeBookings").textContent =
+    bookings.filter(b => b.status === "Active").length;
+  document.getElementById("cancelledBookings").textContent =
+    bookings.filter(b => b.status === "Cancelled").length;
+
+  document.getElementById("adminRooms").innerHTML = `
+    <table><thead><tr>
+      <th>Room</th><th>Type</th><th>Price/Night</th>
+      <th>Capacity</th><th>Status</th><th>Actions</th>
+    </tr></thead><tbody>
+    ${rooms.map(r => `<tr>
+      <td>${escapeHTML(r.name)}</td>
+      <td>${escapeHTML(r.type)}</td>
+      <td>${money(r.price)}</td>
+      <td>${r.capacity}</td>
+      <td>${r.status === "available" ? "Available" : "Maintenance"}</td>
+      <td>
+        <button class="small-btn" onclick="editPrice(${r.id})">Edit Price</button>
+        <button class="small-btn" onclick="toggleRoom(${r.id})">
+          ${r.status === "available" ? "Maintenance" : "Make Available"}
+        </button>
+        <button class="small-btn danger" onclick="deleteRoom(${r.id})">Remove</button>
+      </td>
+    </tr>`).join("")}
+    </tbody></table>`;
+
+  renderAdminBookings();
+}
+
+function renderAdminBookings() {
+  const term = document.getElementById("adminSearch").value.trim().toLowerCase();
+  const filtered = bookings.filter(b =>
+    b.reference.toLowerCase().includes(term) ||
+    b.customer.toLowerCase().includes(term)
+  );
+
+  document.getElementById("adminBookings").innerHTML = `
+    <table><thead><tr>
+      <th>Reference</th><th>Customer</th><th>Room</th>
+      <th>Check-in</th><th>Check-out</th><th>Total</th><th>Status</th>
+    </tr></thead><tbody>
+    ${filtered.map(b => `<tr>
+      <td>${escapeHTML(b.reference)}</td>
+      <td>${escapeHTML(b.customer)}</td>
+      <td>${escapeHTML(b.roomName)}</td>
+      <td>${b.checkin}</td><td>${b.checkout}</td>
+      <td>${money(b.total)}</td><td>${b.status}</td>
+    </tr>`).join("")}
+    </tbody></table>`;
+}
+
+document.getElementById("adminSearch").addEventListener("input", renderAdminBookings);
+
+document.getElementById("checkin").addEventListener("change", () => {
+  const nextDay = new Date(document.getElementById("checkin").value + "T00:00:00");
+  nextDay.setDate(nextDay.getDate() + 1);
+  document.getElementById("checkout").min = [
+    nextDay.getFullYear(),
+    String(nextDay.getMonth() + 1).padStart(2, "0"),
+    String(nextDay.getDate()).padStart(2, "0")
+  ].join("-");
+});
+
+save();
+renderRooms();
+renderAdmin();
+</script>
+</body>
+</html>
